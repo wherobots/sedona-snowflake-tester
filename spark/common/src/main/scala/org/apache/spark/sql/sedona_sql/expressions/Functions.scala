@@ -1444,12 +1444,9 @@ case class ST_GeneratePoints(inputExpressions: Seq[Expression], randomSeed: Long
     extends Expression
     with CodegenFallback
     with ExpectsInputTypes
-    with Nondeterministic
-    with ExpressionWithRandomSeed {
+    with Nondeterministic {
 
   def this(inputExpressions: Seq[Expression]) = this(inputExpressions, Utils.random.nextLong())
-
-  def seedExpression: Expression = Literal(randomSeed)
 
   @transient private[this] var random: Random = _
 
@@ -1485,8 +1482,6 @@ case class ST_GeneratePoints(inputExpressions: Seq[Expression], randomSeed: Long
       throw new IllegalArgumentException(s"Invalid number of arguments: $nArgs")
     }
   }
-
-  override def withNewSeed(seed: Long): ST_GeneratePoints = copy(randomSeed = seed)
 
   override def children: Seq[Expression] = inputExpressions
 
