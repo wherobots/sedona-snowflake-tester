@@ -36,7 +36,7 @@ env:
   SNOWFLAKE_WAREHOUSE: ${{vars.SNOWFLAKE_WAREHOUSE}}
   SNOWFLAKE_ROLE: ${{vars.SNOWFLAKE_ROLE}}
   SNOWFLAKE_ACCOUNT: ${{vars.SNOWFLAKE_ACCOUNT}}
-  SNOWFLAKE_GEOTOOLS_VERSION: '1.5.1-28.2'
+  SNOWFLAKE_GEOTOOLS_VERSION: '1.7.1-28.5'
 
 jobs:
   build:
@@ -47,7 +47,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
       - uses: actions/setup-java@v1
         with:
-          java-version: '8'
+          java-version: '111111111111'
       - name: Cache Maven packages
         uses: actions/cache@v4
         with:
