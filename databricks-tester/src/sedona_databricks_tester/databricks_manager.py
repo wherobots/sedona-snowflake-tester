@@ -1,3 +1,20 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
 """
 Databricks Manager
 Handles cluster lifecycle management, JAR uploads, and job execution.
@@ -18,7 +35,12 @@ from databricks.sdk.service.compute import (
     RuntimeEngine,
     VolumesStorageInfo,
 )
-from databricks.sdk.service.jobs import RunLifeCycleState, RunResultState, SparkPythonTask, Task
+from databricks.sdk.service.jobs import (
+    RunLifeCycleState,
+    RunResultState,
+    SparkPythonTask,
+    Task,
+)
 from databricks.sdk.service.workspace import ImportFormat
 from dotenv import load_dotenv
 from jinja2 import Environment, FileSystemLoader
@@ -74,7 +96,9 @@ class DatabricksManager:
             logger.error(f"Connection test failed: {e}")
             return False
 
-    def prepare_init_script(self, jar_paths: dict[str, str], volume_path: str) -> dict[str, str]:
+    def prepare_init_script(
+        self, jar_paths: dict[str, str], volume_path: str
+    ) -> dict[str, str]:
         """Upload init scripts and JAR files to Databricks Volumes, then generate init script
         and upload it.
 
@@ -101,7 +125,9 @@ class DatabricksManager:
 
             # Check if JAR already exists in Volumes
             try:
-                existing_metadata = self.client.files.get_metadata(file_path=volume_jar_path)
+                existing_metadata = self.client.files.get_metadata(
+                    file_path=volume_jar_path
+                )
                 local_size = jar_file.stat().st_size
                 volume_size = existing_metadata.content_length
 
@@ -125,10 +151,14 @@ class DatabricksManager:
 
             # Use the Files API to upload to Volumes (supports large files)
             with open(jar_file, "rb") as f:
-                self.client.files.upload(file_path=volume_jar_path, contents=f, overwrite=True)
+                self.client.files.upload(
+                    file_path=volume_jar_path, contents=f, overwrite=True
+                )
 
             uploaded_files[jar_name] = volume_jar_path
-            logger.info(f"Uploaded {jar_name} to Volumes ({jar_file.stat().st_size} bytes)")
+            logger.info(
+                f"Uploaded {jar_name} to Volumes ({jar_file.stat().st_size} bytes)"
+            )
 
         # Generate init script content
         init_script_content = self._generate_init_script(uploaded_files)
@@ -159,6 +189,7 @@ class DatabricksManager:
             trim_blocks=True,
             lstrip_blocks=True,
             keep_trailing_newline=True,
+            autoescape=True,
         )
 
         # Render the template
@@ -167,7 +198,11 @@ class DatabricksManager:
         return template.render(**context)
 
     def create_cluster_with_local_jars(
-        self, runtime_version: str, jar_paths: dict[str, str], volume_path: str, cluster_name: str
+        self,
+        runtime_version: str,
+        jar_paths: dict[str, str],
+        volume_path: str,
+        cluster_name: str,
     ) -> str:
         """Create or reuse a cluster with custom JAR files.
 
@@ -181,14 +216,18 @@ class DatabricksManager:
         uploaded_files = self.prepare_init_script(jar_paths, volume_path)
 
         # Create or reuse cluster
-        return self.reuse_or_create_cluster(runtime_version, uploaded_files, cluster_name)
+        return self.reuse_or_create_cluster(
+            runtime_version, uploaded_files, cluster_name
+        )
 
     def find_cluster_by_name(self, cluster_name: str) -> Optional[str]:
         """Find cluster ID by name if it exists."""
         clusters = self.client.clusters.list()
         for cluster in clusters:
             if cluster.cluster_name == cluster_name:
-                logger.info(f"Found existing cluster: {cluster_name} (ID: {cluster.cluster_id})")
+                logger.info(
+                    f"Found existing cluster: {cluster_name} (ID: {cluster.cluster_id})"
+                )
                 return cluster.cluster_id
         return None
 
@@ -286,16 +325,24 @@ class DatabricksManager:
                         logger.info("Cluster started successfully")
                         return existing_cluster_id
                     else:
-                        logger.warning("Failed to start existing cluster, will create new one")
+                        logger.warning(
+                            "Failed to start existing cluster, will create new one"
+                        )
                 else:
-                    logger.warning("Failed to start existing cluster, will create new one")
+                    logger.warning(
+                        "Failed to start existing cluster, will create new one"
+                    )
             elif current_state in ["PENDING", "RESTARTING", "RESIZING"]:
-                logger.info(f"Cluster is in {current_state} state, waiting for it to be ready...")
+                logger.info(
+                    f"Cluster is in {current_state} state, waiting for it to be ready..."
+                )
                 if self.wait_for_cluster_ready(existing_cluster_id):
                     logger.info("Cluster is now ready")
                     return existing_cluster_id
                 else:
-                    logger.warning("Cluster failed to become ready, will create new one")
+                    logger.warning(
+                        "Cluster failed to become ready, will create new one"
+                    )
             else:
                 logger.warning(
                     f"Cluster is in unexpected state {current_state}, will create new one"
@@ -307,7 +354,9 @@ class DatabricksManager:
         try:
             init_scripts = [
                 InitScriptInfo(
-                    volumes=VolumesStorageInfo(destination=uploaded_files["init_script"])
+                    volumes=VolumesStorageInfo(
+                        destination=uploaded_files["init_script"]
+                    )
                 )
             ]
             data_security_mode = None
@@ -348,7 +397,9 @@ class DatabricksManager:
             logger.error(f"Failed to create cluster: {e}")
             raise
 
-    def wait_for_cluster_ready(self, cluster_id: str, timeout_minutes: int = 15) -> bool:
+    def wait_for_cluster_ready(
+        self, cluster_id: str, timeout_minutes: int = 15
+    ) -> bool:
         """Wait for cluster to be in RUNNING state."""
         timeout_seconds = timeout_minutes * 60
         start_time = time.time()
@@ -399,7 +450,9 @@ class DatabricksManager:
         """Recursively delete a directory and all its contents."""
         try:
             # List all contents in the directory
-            contents = self.client.files.list_directory_contents(directory_path=directory_path)
+            contents = self.client.files.list_directory_contents(
+                directory_path=directory_path
+            )
 
             # Delete all files and subdirectories
             for item in contents:
@@ -534,7 +587,9 @@ class DatabricksManager:
             Run ID of the started job
         """
         try:
-            logger.info(f"Creating Python job '{job_name}' with file {python_file_path}")
+            logger.info(
+                f"Creating Python job '{job_name}' with file {python_file_path}"
+            )
 
             # Prepare parameters for the Python script
             parameters = []
@@ -547,7 +602,8 @@ class DatabricksManager:
                     task_key="smoke_test",
                     existing_cluster_id=cluster_id,
                     spark_python_task=SparkPythonTask(
-                        python_file=python_file_path, parameters=parameters if parameters else None
+                        python_file=python_file_path,
+                        parameters=parameters if parameters else None,
                     ),
                     timeout_seconds=1800,  # 30 minutes timeout
                 )
@@ -589,10 +645,17 @@ class DatabricksManager:
             try:
                 run = self.client.jobs.get_run(run_id=run_id)
 
-                if run.state and run.state.life_cycle_state == RunLifeCycleState.TERMINATED:
-                    result_state = run.state.result_state if run.state else RunResultState.FAILED
+                if (
+                    run.state
+                    and run.state.life_cycle_state == RunLifeCycleState.TERMINATED
+                ):
+                    result_state = (
+                        run.state.result_state if run.state else RunResultState.FAILED
+                    )
 
-                    logger.info(f"Job run {run_id} completed with result: {result_state}")
+                    logger.info(
+                        f"Job run {run_id} completed with result: {result_state}"
+                    )
 
                     return {
                         "run_id": run_id,
@@ -611,14 +674,20 @@ class DatabricksManager:
                     time.sleep(5)
                 else:
                     # Job failed or was cancelled
-                    life_cycle_state = run.state.life_cycle_state if run.state else "UNKNOWN"
+                    life_cycle_state = (
+                        run.state.life_cycle_state if run.state else "UNKNOWN"
+                    )
 
-                    logger.error(f"Job run {run_id} failed with state: {life_cycle_state}")
+                    logger.error(
+                        f"Job run {run_id} failed with state: {life_cycle_state}"
+                    )
                     return {
                         "run_id": run_id,
-                        "result_state": run.state.result_state
-                        if run.state
-                        else RunResultState.FAILED,
+                        "result_state": (
+                            run.state.result_state
+                            if run.state
+                            else RunResultState.FAILED
+                        ),
                         "success": False,
                         "start_time": run.start_time,
                         "end_time": run.end_time,
@@ -658,11 +727,16 @@ class DatabricksManager:
                 for task in run.tasks:
                     if task.run_id:
                         try:
-                            task_output = self.client.jobs.get_run_output(run_id=task.run_id)
-                            task_logs = (
-                                task_output.logs or f"No logs available for task {task.task_key}"
+                            task_output = self.client.jobs.get_run_output(
+                                run_id=task.run_id
                             )
-                            all_logs.append(f"=== Task: {task.task_key} ===\n{task_logs}")
+                            task_logs = (
+                                task_output.logs
+                                or f"No logs available for task {task.task_key}"
+                            )
+                            all_logs.append(
+                                f"=== Task: {task.task_key} ===\n{task_logs}"
+                            )
                         except Exception as task_e:
                             all_logs.append(
                                 f"=== Task: {task.task_key} ===\nError getting logs: {task_e}"

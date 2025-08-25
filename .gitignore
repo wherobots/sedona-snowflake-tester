@@ -37,3 +37,4 @@
 __pycache__
 dependency-reduced-pom.xml
 target
+.env

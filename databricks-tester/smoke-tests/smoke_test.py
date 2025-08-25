@@ -1,4 +1,21 @@
 #!/usr/bin/env python3
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
 """
 Sedona Smoke Test Script for Databricks
 
@@ -82,9 +99,9 @@ class SedonaSmokeTest:
         distance_row = distance_df.collect()[0]
         distance_result = distance_row["distance"]
         expected_distance = 5.0  # 3-4-5 triangle
-        assert abs(distance_result - expected_distance) < 0.001, (
-            f"Expected distance ~5.0, got {distance_result}"
-        )
+        assert (
+            abs(distance_result - expected_distance) < 0.001
+        ), f"Expected distance ~5.0, got {distance_result}"
         print(f"  Distance calculation: {distance_result} (expected ~5.0)")
 
         # Test advanced geometric operations
@@ -132,9 +149,9 @@ class SedonaSmokeTest:
 
         result_row = buffer_test.collect()[0]
         result = result_row["point_in_buffer"]
-        assert result == True, (
-            f"Point (3,4) should be in buffer of radius 10 around origin, got {result}"
-        )
+        assert (
+            result == True
+        ), f"Point (3,4) should be in buffer of radius 10 around origin, got {result}"
 
         print(f"  Buffer contains test: {result}")
 
@@ -154,7 +171,10 @@ class SedonaSmokeTest:
         polygon_df = (
             self.spark.range(100)
             .select(col("id"), (rand() * 10).alias("x"), (rand() * 10).alias("y"))
-            .select(col("id"), expr("ST_PolygonFromEnvelope(x, y, x + 1, y + 1)").alias("polygon"))
+            .select(
+                col("id"),
+                expr("ST_PolygonFromEnvelope(x, y, x + 1, y + 1)").alias("polygon"),
+            )
         )
 
         # Register temp views
@@ -165,7 +185,9 @@ class SedonaSmokeTest:
         for threshold in ["-1", None]:
             if threshold:
                 print(f"  spark.sedona.join.autoBroadcastJoinThreshold: {threshold}")
-                self.spark.conf.set("spark.sedona.join.autoBroadcastJoinThreshold", "-1")
+                self.spark.conf.set(
+                    "spark.sedona.join.autoBroadcastJoinThreshold", "-1"
+                )
             else:
                 print(f"  spark.sedona.join.autoBroadcastJoinThreshold: unset")
                 self.spark.conf.unset("spark.sedona.join.autoBroadcastJoinThreshold")
@@ -195,7 +217,9 @@ class SedonaSmokeTest:
             raise RuntimeError("Spark session not initialized")
 
         # Use DBFS path with session_id for better isolation
-        output_path = f"dbfs:/tmp/sedona-smoke-test/{self.session_id}/sedona_test_geoparquet"
+        output_path = (
+            f"dbfs:/tmp/sedona-smoke-test/{self.session_id}/sedona_test_geoparquet"
+        )
 
         # Create sample spatial data
         sample_data = self.spark.range(100).select(
@@ -231,17 +255,21 @@ class SedonaSmokeTest:
             raise RuntimeError("Spark session not initialized")
 
         # Use DBFS path with session_id for better isolation
-        output_path = f"dbfs:/tmp/sedona-smoke-test/{self.session_id}/sedona_test_geojson"
+        output_path = (
+            f"dbfs:/tmp/sedona-smoke-test/{self.session_id}/sedona_test_geojson"
+        )
 
         # Create sample spatial data with different geometry types
         sample_data = self.spark.range(50).select(
             col("id"),
-            expr("CASE "
-                 "WHEN id % 4 = 0 THEN ST_Point(rand() * 360 - 180, rand() * 180 - 90) "
-                 "WHEN id % 4 = 1 THEN ST_MakeLine(array(ST_Point(rand() * 10, rand() * 10), ST_Point(rand() * 10 + 10, rand() * 10 + 10))) "
-                 "WHEN id % 4 = 2 THEN ST_PolygonFromEnvelope(rand() * 10, rand() * 10, rand() * 10 + 5, rand() * 10 + 5) "
-                 "ELSE ST_Buffer(ST_Point(rand() * 10, rand() * 10), 2.0) "
-                 "END").alias("geometry"),
+            expr(
+                "CASE "
+                "WHEN id % 4 = 0 THEN ST_Point(rand() * 360 - 180, rand() * 180 - 90) "
+                "WHEN id % 4 = 1 THEN ST_MakeLine(array(ST_Point(rand() * 10, rand() * 10), ST_Point(rand() * 10 + 10, rand() * 10 + 10))) "
+                "WHEN id % 4 = 2 THEN ST_PolygonFromEnvelope(rand() * 10, rand() * 10, rand() * 10 + 5, rand() * 10 + 5) "
+                "ELSE ST_Buffer(ST_Point(rand() * 10, rand() * 10), 2.0) "
+                "END"
+            ).alias("geometry"),
             expr("concat('Feature_', id)").alias("name"),
             expr("CASE WHEN id % 2 = 0 THEN 'even' ELSE 'odd' END").alias("category"),
         )
@@ -334,12 +362,14 @@ class SedonaSmokeTest:
 
 def main():
     """Main entry point for the smoke test."""
-    parser = argparse.ArgumentParser(description="Sedona Smoke Test Script for Databricks")
+    parser = argparse.ArgumentParser(
+        description="Sedona Smoke Test Script for Databricks"
+    )
     parser.add_argument(
         "--session-id",
         type=str,
         help="Session ID for test isolation (affects file paths)",
-        default=None
+        default=None,
     )
 
     args = parser.parse_args()

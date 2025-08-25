@@ -1,3 +1,20 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
 """
 Sedona Tester CLI
 Main command-line interface for local testing and debugging of Databricks Sedona integration.
@@ -81,8 +98,12 @@ def create_databricks_manager(
 
 @click.group()
 @click.option("--debug", is_flag=True, help="Enable debug logging")
-@click.option("--host", help="Databricks workspace host (overrides DATABRICKS_HOST env var)")
-@click.option("--token", help="Databricks access token (overrides DATABRICKS_TOKEN env var)")
+@click.option(
+    "--host", help="Databricks workspace host (overrides DATABRICKS_HOST env var)"
+)
+@click.option(
+    "--token", help="Databricks access token (overrides DATABRICKS_TOKEN env var)"
+)
 @click.option(
     "--volume-path",
     help="Base volume path for storing test assets (overrides DATABRICKS_VOLUME_PATH env var)",
@@ -158,7 +179,10 @@ def list_runtimes(ctx):
 @cli.command()
 @click.option("--runtime", required=True, help="Databricks runtime version")
 @click.option(
-    "--jar", multiple=True, required=True, help="Path to JAR file (can be specified multiple times)"
+    "--jar",
+    multiple=True,
+    required=True,
+    help="Path to JAR file (can be specified multiple times)",
 )
 @click.option("--session-id", help="Session ID for this test run")
 @click.pass_context
@@ -207,9 +231,14 @@ def create_cluster(ctx, runtime, jar, session_id):
 @click.option("--runtime", required=True, help="Databricks runtime version")
 @click.option("--session-id", help="Session ID for this test run")
 @click.option(
-    "--jar", multiple=True, required=True, help="Path to JAR file (can be specified multiple times)"
+    "--jar",
+    multiple=True,
+    required=True,
+    help="Path to JAR file (can be specified multiple times)",
 )
-@click.option("--no-cleanup", is_flag=True, help="Skip cleanup of resources (for testing)")
+@click.option(
+    "--no-cleanup", is_flag=True, help="Skip cleanup of resources (for testing)"
+)
 @click.pass_context
 def smoke_test(
     ctx,
@@ -337,7 +366,9 @@ def _cleanup_clusters(manager, clusters, cluster_type="clusters"):
 
     click.echo(f"Found {len(clusters)} {cluster_type}:")
     for cluster in clusters:
-        click.echo(f"  - {cluster['name']} (ID: {cluster['id']}, State: {cluster['state']})")
+        click.echo(
+            f"  - {cluster['name']} (ID: {cluster['id']}, State: {cluster['state']})"
+        )
 
     if not click.confirm(f"Do you want to terminate and delete these {cluster_type}?"):
         click.echo("Cluster cleanup cancelled")
@@ -348,7 +379,9 @@ def _cleanup_clusters(manager, clusters, cluster_type="clusters"):
         if _cleanup_cluster(manager, cluster):
             processed_count += 1
 
-    click.echo(f"Successfully processed {processed_count}/{len(clusters)} {cluster_type}")
+    click.echo(
+        f"Successfully processed {processed_count}/{len(clusters)} {cluster_type}"
+    )
 
 
 def _cleanup_session(manager, session_id, volume_path, workspace_path):
@@ -421,7 +454,9 @@ def cleanup(ctx, all, session_id):
             # Create session-specific paths for cleanup
             session_volume_path = f"{volume_path}/{session_id}"
             session_workspace_path = f"{workspace_path}/{session_id}"
-            _cleanup_session(manager, session_id, session_volume_path, session_workspace_path)
+            _cleanup_session(
+                manager, session_id, session_volume_path, session_workspace_path
+            )
 
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
