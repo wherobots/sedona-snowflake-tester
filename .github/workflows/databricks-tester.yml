@@ -21,7 +21,6 @@ on:
   push:
     branches:
       - master
-      - '**'
   pull_request_target: # This is a dangerous operation. Only people who are within Wherobots organization should be able to trigger this PR.
     types:
       - opened
@@ -206,7 +205,7 @@ jobs:
           echo "Test job status: ${{ needs.databricks-test.result }}"
 
           # Run cleanup command - this will clean up clusters, volumes, and workspace files
-          uv run python -m sedona_databricks_tester cleanup --session-id "$SESSION_ID" || {
+          uv run python -m sedona_databricks_tester cleanup --session-id "$SESSION_ID" --force || {
             echo "Cleanup failed, but continuing..."
             exit 0
           }

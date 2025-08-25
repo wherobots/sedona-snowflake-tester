@@ -362,7 +362,7 @@ def _cleanup_cluster(manager, cluster):
         return False
 
 
-def _cleanup_clusters(manager, clusters, cluster_type="clusters"):
+def _cleanup_clusters(manager, clusters, cluster_type="clusters", force=False):
     """Clean up a list of clusters with user confirmation."""
     if not clusters:
         click.echo(f"No {cluster_type} found")
@@ -374,7 +374,9 @@ def _cleanup_clusters(manager, clusters, cluster_type="clusters"):
             f"  - {cluster['name']} (ID: {cluster['id']}, State: {cluster['state']})"
         )
 
-    if not click.confirm(f"Do you want to terminate and delete these {cluster_type}?"):
+    if not force and not click.confirm(
+        f"Do you want to terminate and delete these {cluster_type}?"
+    ):
         click.echo("Cluster cleanup cancelled")
         return
 
@@ -388,14 +390,16 @@ def _cleanup_clusters(manager, clusters, cluster_type="clusters"):
     )
 
 
-def _cleanup_session(manager, session_id, volume_path, workspace_path):
+def _cleanup_session(manager, session_id, volume_path, workspace_path, force=False):
     """Clean up resources for a specific session."""
     click.echo(f"Cleaning up session: {session_id}")
 
     # Find and process clusters for this session
     click.echo("Looking for clusters...")
     clusters = manager.find_clusters_by_suffix(session_id)
-    _cleanup_clusters(manager, clusters, f"cluster(s) for session {session_id}")
+    _cleanup_clusters(
+        manager, clusters, f"cluster(s) for session {session_id}", force=force
+    )
 
     # Clean up files
     click.echo("Cleaning up files...")
@@ -409,14 +413,14 @@ def _cleanup_session(manager, session_id, volume_path, workspace_path):
     click.echo(f"Session {session_id} cleanup completed")
 
 
-def _cleanup_all_resources(manager, volume_path, workspace_path):
+def _cleanup_all_resources(manager, volume_path, workspace_path, force=False):
     """Clean up all sedona smoke-test resources."""
     click.echo("Cleaning up all Sedona smoke-test resources...")
 
     # Find and process all sedona-smoke-test clusters
     click.echo("Looking for all sedona-smoke-test clusters...")
     clusters = manager.find_clusters_by_prefix(CLUSTER_NAME_PREFIX)
-    _cleanup_clusters(manager, clusters, "sedona-smoke-test cluster(s)")
+    _cleanup_clusters(manager, clusters, "sedona-smoke-test cluster(s)", force=force)
 
     try:
         manager.cleanup_volume_files(volume_path)
@@ -431,8 +435,9 @@ def _cleanup_all_resources(manager, volume_path, workspace_path):
 @cli.command()
 @click.option("--all", is_flag=True, help="Clean up all resources")
 @click.option("--session-id", help="Clean up specific session")
+@click.option("--force", is_flag=True, help="Skip confirmation prompts")
 @click.pass_context
-def cleanup(ctx, all, session_id):
+def cleanup(ctx, all, session_id, force):
     """Clean up Databricks resources."""
     try:
         # Get validated configuration from context
@@ -446,7 +451,7 @@ def cleanup(ctx, all, session_id):
             manager = DatabricksManager(host=host, token=token)
             if not manager.test_connection():
                 raise click.ClickException("Failed to connect to Databricks")
-            _cleanup_all_resources(manager, volume_path, workspace_path)
+            _cleanup_all_resources(manager, volume_path, workspace_path, force=force)
         else:
             if not session_id:
                 click.echo("Specify --all or --session-id for cleanup")
@@ -460,7 +465,11 @@ def cleanup(ctx, all, session_id):
             session_volume_path = f"{volume_path}/{session_id}"
             session_workspace_path = f"{workspace_path}/{session_id}"
             _cleanup_session(
-                manager, session_id, session_volume_path, session_workspace_path
+                manager,
+                session_id,
+                session_volume_path,
+                session_workspace_path,
+                force=force,
             )
 
     except Exception as e:
