@@ -147,10 +147,11 @@ uv run python -m sedona_databricks_tester cleanup --all
 
 1. **Uploads JARs** to Databricks Volumes
 2. **Creates/reuses cluster** with Sedona configuration
-3. **Uploads smoke test script** to workspace
-4. **Runs tests** (smoke-tests/smoke_test.py)
-5. **Shows real-time test output**
-6. **Cleans up resources** (unless `--no-cleanup` specified)
+3. **Uploads test data files** to volume
+4. **Uploads smoke test script** to workspace (smoke-tests/data)
+5. **Runs tests** (smoke-tests/smoke_test.py)
+6. **Shows test output**
+7. **Cleans up resources** (unless `--no-cleanup` specified)
 
 ### What the cleanup command does
 
