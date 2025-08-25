@@ -168,10 +168,47 @@ jobs:
           echo "Sedona JAR: $SEDONA_JAR"
           echo "GeoTools JAR: $GEOTOOLS_JAR"
 
-          # Run smoke tests without automatic cleanup
+          # Run smoke tests
           uv run python -m sedona_databricks_tester smoke-test \
             --runtime "${{ matrix.runtime }}" \
             --session-id "$SESSION_ID" \
             --jar "$SEDONA_JAR" \
             --jar "$GEOTOOLS_JAR" \
             --no-cleanup
+
+  cleanup:
+    needs: databricks-test
+    runs-on: ubuntu-22.04
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      - name: Setup Databricks tester environment
+        working-directory: databricks-tester
+        run: |
+          source $HOME/.cargo/env
+          uv sync
+      - name: Cleanup Databricks resources
+        working-directory: databricks-tester
+        run: |
+          source $HOME/.cargo/env
+
+          # Use the same session ID as the test job
+          SESSION_ID="${{ github.run_id }}"
+
+          echo "Cleaning up Databricks resources for session: $SESSION_ID"
+          echo "Test job status: ${{ needs.databricks-test.result }}"
+
+          # Run cleanup command - this will clean up clusters, volumes, and workspace files
+          uv run python -m sedona_databricks_tester cleanup --session-id "$SESSION_ID" || {
+            echo "Cleanup failed, but continuing..."
+            exit 0
+          }
+
+          echo "Cleanup completed successfully"

@@ -280,7 +280,11 @@ def smoke_test(
         # Run smoke tests with optional log streaming
         click.echo("Running smoke tests...")
         test_result = manager.run_smoke_test(
-            cluster_id, workspace_path, job_name, session_info["session_id"]
+            cluster_id,
+            workspace_path,
+            volume_path,
+            job_name,
+            session_info["session_id"],
         )
 
         # Display results
@@ -396,7 +400,8 @@ def _cleanup_session(manager, session_id, volume_path, workspace_path):
     # Clean up files
     click.echo("Cleaning up files...")
     try:
-        manager.cleanup_all_files(volume_path, workspace_path)
+        manager.cleanup_volume_files(volume_path)
+        manager.cleanup_workspace_files(workspace_path)
         click.echo("✓ Files cleaned up successfully")
     except Exception as e:
         click.echo(f"✗ Warning: Failed to clean up files: {e}", err=True)

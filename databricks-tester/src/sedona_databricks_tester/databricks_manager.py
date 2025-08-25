@@ -474,6 +474,54 @@ class DatabricksManager:
             else:
                 raise e
 
+    def upload_test_data(self, volume_path: str) -> None:
+        """Upload test data from smoke-tests/data to the session-specific volume.
+
+        Args:
+            volume_path: Base volume path for the session (e.g., /Volumes/catalog/schema/volume/session_id)
+        """
+        # Define source and destination paths
+        local_data_path = PROJECT_ROOT / "smoke-tests" / "data"
+        volume_data_path = f"{volume_path}/data"
+
+        if not local_data_path.exists():
+            raise RuntimeError(f"Test data directory not found: {local_data_path}")
+
+        logger.info(f"Uploading test data from {local_data_path} to {volume_data_path}")
+        self._upload_directory_recursive(local_data_path, volume_data_path)
+        logger.info("Test data upload completed")
+
+    def _upload_directory_recursive(self, local_dir: Path, volume_dir: str) -> None:
+        """Recursively upload a local directory to Databricks Volumes.
+
+        Args:
+            local_dir: Local directory path to upload
+            volume_dir: Target directory path in Databricks Volumes
+        """
+        # Iterate through all items in the local directory
+        for item in local_dir.iterdir():
+            if item.is_file():
+                # Upload file
+                volume_file_path = f"{volume_dir}/{item.name}"
+                logger.debug(f"Uploading file: {item} -> {volume_file_path}")
+
+                with open(item, "rb") as f:
+                    self.client.files.upload(
+                        file_path=volume_file_path, contents=f, overwrite=True
+                    )
+
+                logger.debug(
+                    f"Uploaded file: {item.name} ({item.stat().st_size} bytes)"
+                )
+
+            elif item.is_dir():
+                # Recursively upload subdirectory
+                volume_subdir = f"{volume_dir}/{item.name}"
+                logger.debug(f"Uploading directory: {item} -> {volume_subdir}")
+
+                # Recursive call for subdirectory
+                self._upload_directory_recursive(item, volume_subdir)
+
     def cleanup_volume_files(self, volume_path: str):
         """Clean up uploaded volume files for this session."""
         try:
@@ -763,6 +811,7 @@ class DatabricksManager:
         self,
         cluster_id: str,
         workspace_path: str,
+        volume_path: str,
         job_name: str,
         session_id: Optional[str] = None,
         stream_logs: bool = True,
@@ -772,6 +821,7 @@ class DatabricksManager:
         Args:
             cluster_id: ID of the cluster to run tests on
             workspace_path: Path in workspace to store files
+            volume_path: Path in volume to store test data files
             job_name: Full name for the job
             session_id: Optional session ID for test isolation
             stream_logs: Whether to stream logs in real-time
@@ -783,6 +833,10 @@ class DatabricksManager:
             # Define paths
             smoke_test_file = PROJECT_ROOT / "smoke-tests" / "smoke_test.py"
             workspace_python_path = f"{workspace_path}/smoke_test.py"
+
+            # Upload test data to volume before running tests
+            logger.info("Uploading test data to volume...")
+            self.upload_test_data(volume_path)
 
             # Upload smoke test Python file to workspace
             self.upload_python_file(str(smoke_test_file), workspace_python_path)

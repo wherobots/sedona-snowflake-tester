@@ -72,9 +72,6 @@ class SedonaSmokeTest:
 
     def test_basic_st_functions(self) -> None:
         """Test basic ST functions."""
-        if self.spark is None:
-            raise RuntimeError("Spark session not initialized")
-
         # Test basic ST functions
         test_df = self.spark.sql(
             """
@@ -134,9 +131,6 @@ class SedonaSmokeTest:
 
     def test_spatial_operations(self) -> None:
         """Test spatial operations like ST_Buffer and ST_Contains."""
-        if self.spark is None:
-            raise RuntimeError("Spark session not initialized")
-
         buffer_test = self.spark.sql(
             """
             SELECT
@@ -157,9 +151,6 @@ class SedonaSmokeTest:
 
     def test_spatial_join(self) -> None:
         """Test spatial join with generated data."""
-        if self.spark is None:
-            raise RuntimeError("Spark session not initialized")
-
         # Create test data using spark.range
         points_df = (
             self.spark.range(1000)
@@ -213,9 +204,6 @@ class SedonaSmokeTest:
 
     def test_geoparquet_io(self) -> None:
         """Test GeoParquet I/O operations."""
-        if self.spark is None:
-            raise RuntimeError("Spark session not initialized")
-
         # Use DBFS path with session_id for better isolation
         output_path = (
             f"dbfs:/tmp/sedona-smoke-test/{self.session_id}/sedona_test_geoparquet"
@@ -241,19 +229,8 @@ class SedonaSmokeTest:
         print(f"  Test data path: {output_path}")
         read_back.show(5)
 
-        # Clean up
-        try:
-            if os.path.exists(output_path):
-                shutil.rmtree(output_path)
-                print(f"  Cleaned up test data at {output_path}")
-        except Exception as e:
-            print(f"  Warning: Could not clean up test data: {e}")
-
     def test_geojson_io(self) -> None:
         """Test GeoJSON I/O operations."""
-        if self.spark is None:
-            raise RuntimeError("Spark session not initialized")
-
         # Use DBFS path with session_id for better isolation
         output_path = (
             f"dbfs:/tmp/sedona-smoke-test/{self.session_id}/sedona_test_geojson"
@@ -292,6 +269,52 @@ class SedonaSmokeTest:
         print("  Sample records:")
         read_back.show(3)
 
+    def test_shapefile_io(self) -> None:
+        """Test reading shapefile data from uploaded test data."""
+        if self.spark is None:
+            raise RuntimeError("Spark session not initialized")
+
+        # Construct path to the uploaded shapefile data
+        # The data manager uploads test data to /Volumes/wherobots/sedona_smoke_test/cluster_setup/{session_id}/data/
+        shapefile_path = f"/Volumes/wherobots/sedona_smoke_test/cluster_setup/{self.session_id}/data/shp/ne_50m_airports"
+
+        # Test reading shapefile using the shapefile format
+        shapefile_df = self.spark.read.format("shapefile").load(shapefile_path)
+
+        # Get record count
+        count = shapefile_df.count()
+        print(f"  Records read from shapefile: {count}")
+
+        # Verify we have some data
+        assert count > 0, f"Expected shapefile to contain records, got {count}"
+
+        # Show schema and sample data
+        print("  Schema:")
+        shapefile_df.printSchema()
+        print("  Sample records:")
+        shapefile_df.show(3)
+
+    def test_pbf_io(self) -> None:
+        """Test reading PBF data from uploaded test data."""
+        # Construct path to the uploaded PBF data
+        pbf_path = f"/Volumes/wherobots/sedona_smoke_test/cluster_setup/{self.session_id}/data/pbf/monaco-latest.osm.pbf"
+
+        # Test reading PBF using the osm format
+        pbf_df = self.spark.read.format("osmpbf").load(pbf_path)
+
+        # Get record count
+        count = pbf_df.count()
+        print(f"  Records read from PBF: {count}")
+
+        # Verify we have some data
+        assert count > 0, f"Expected PBF to contain records, got {count}"
+
+        # Show schema and sample data
+        print("  Schema:")
+        pbf_df.printSchema()
+        print("  Sample records:")
+        pbf_df.show(3)
+
     def run_all_tests(self) -> bool:
         """Run all smoke tests."""
         print("Starting Sedona Smoke Tests")
@@ -309,6 +332,8 @@ class SedonaSmokeTest:
             ("Spatial Join", self.test_spatial_join),
             ("GeoParquet I/O", self.test_geoparquet_io),
             ("GeoJSON I/O", self.test_geojson_io),
+            ("Shapefile I/O", self.test_shapefile_io),
+            ("PBF I/O", self.test_pbf_io),
         ]
 
         # Run all tests
